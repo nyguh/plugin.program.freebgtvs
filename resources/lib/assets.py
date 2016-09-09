@@ -26,7 +26,13 @@ class Assets:
       self.get_asset()
     if self.file.endswith('gz'):
       self.extract()
-      
+
+  def create_dir(dir):
+    try: os.makedirs(dir)
+    except OSError as exc: # Guard against race condition
+      if exc.errno != errno.EEXIST:
+        raise
+        
   def is_expired(self):
     try:
       from datetime import datetime, timedelta
@@ -48,22 +54,17 @@ class Assets:
       f = urllib2.urlopen(self.url)
       with open(self.file, "wb") as code:
         code.write(f.read())
+      self.log('Assets file downloaded')
     except:
       self.handle_ex()
-
-  def create_dir(dir):
-    try: os.makedirs(dir)
-    except OSError as exc: # Guard against race condition
-      if exc.errno != errno.EEXIST:
-        raise
       
   def extract(self):
     try:
       with gzip.GzipFile(self.file, 'rb') as gz:
-        gz.read()
-      self.file = self.file.replace('.gz', '')
-      with file(self.file, 'wb') as out:
-        out.write(s)
+        s = gz.read()
+        self.file = self.file.replace('.gz', '')
+        with file(self.file, 'wb') as out:
+          out.write(s)
     except:
       self.handle_ex()
       

@@ -81,11 +81,11 @@ class Stream:
     #if '3583019' in self.player_url: #BiT
     #	return self._livestream()
     headers = {'User-agent': self.user_agent, 'Referer':self.page_url}
-    self.log("Resolving stream from: %s" % self.player_url)
     res = requests.get(self.player_url, headers=headers)
     m = re.compile('(http.*m3u.*?)[\s\'"]+').findall(res.text)
-    self.log('Found %s m3u matches in source ' % len(m))
+    self.log('Намерени %s съвпадения в %s' % (len(m), self.player_url))
     stream = '' if len(m) == 0 else m[0]
+    self.log('Извлечен видео поток %s' % stream)
     #travelhd wrong stream name hack
     if 'playerCommunity' in self.player_url:
       stream.replace('/community/community', '/travel/community')

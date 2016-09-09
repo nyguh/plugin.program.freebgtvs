@@ -4,11 +4,15 @@ from ga import ga
 from resources.lib import *
 from resources.lib.assets import Assets
 
-def show_progress(percent, msg, level = xbmc.LOGDEBUG):
+def log(msg, level = xbmc.LOGNOTICE):
   if c_debug:
+    xbmc.log('%s | %s' % (id, msg), level)
+
+def show_progress(percent, msg):
+  if c_debug or is_manual_run:
     heading = name.encode('utf-8') + ' ' + str(percent) + '%'
     dp.update(percent, heading, msg)
-    xbmc.log('%s | %s' % (id, percent), level)
+    log(msg)
 
 def update(action, location, crash=None):
 	p = {}
@@ -19,12 +23,15 @@ def update(action, location, crash=None):
 	p['ev'] = '1'
 	p['ul'] = xbmc.getLanguage()
 	p['cd'] = location
-	ga('UA-79422131-7').update(p, crash)
+	ga('UA-79422131-8').update(p, crash)
   
 ###################################################
 ### Settings
 ###################################################
 __DEBUG__ = False
+is_manual_run = False if len(sys.argv) > 1 and sys.argv[1] == 'False' else True
+if not is_manual_run:
+  xbmc.log('%s | Автоматично генериране на плейлиста' % id)
 addon = xbmcaddon.Addon()
 id = addon.getAddonInfo('id')
 name = addon.getAddonInfo('name').decode('utf-8')
@@ -32,9 +39,10 @@ cwd = xbmc.translatePath( addon.getAddonInfo('path') ).decode('utf-8')
 profile_dir = xbmc.translatePath( addon.getAddonInfo('profile') ).decode('utf-8')
 icon = addon.getAddonInfo('icon').decode('utf-8')
 c_debug = True if addon.getSetting('debug') == 'true' else False
+xbmc.log("c_debug: %s " % str(c_debug))
 local_db = xbmc.translatePath(os.path.join( cwd, 'resources', 'tv.db' ))
 url = 'http://offshoregit.com/harrygg/assets/tv.db.gz'
-a = Assets(profile_dir, url, local_db, xbmc.log)
+a = Assets(profile_dir, url, local_db, log)
 db = a.file
 try:
   if __DEBUG__ == True: db = os.environ['BGTVS_DB']
@@ -44,7 +52,7 @@ except Exception:
 ###################################################
 ### Addon logic
 ###################################################
-if c_debug:
+if c_debug or is_manual_run:
   dp = xbmcgui.DialogProgressBG()
   dp.create(heading = name)
 
@@ -62,7 +70,7 @@ cursor = conn.execute('''SELECT c.id, c.disabled, c.name, cat.name AS category, 
   
 show_progress(20,'Генериране на плейлиста')
 update('generation', 'PlaylistGenerator')
-pl = Playlist(xbmc.log)
+pl = Playlist(log)
 show_progress(25,'Търсене на потоци')
 n = 26
 
@@ -74,7 +82,7 @@ for row in cursor:
     pl.channels.append(c)
   else: #If we have more than one stream get all streams and select the default one
     cursor = conn.execute('''SELECT * FROM streams WHERE disabled <> 1 AND channel_id = %s AND ordering = 1''' % c.id)
-    s = Stream(cursor.fetchone(), xbmc.log)
+    s = Stream(cursor.fetchone(), log)
     c.playpath = s.url
     pl.channels.append(c)
   
@@ -112,5 +120,5 @@ xbmc.executebuiltin('AlarmClock(%s, RunScript(%s, False), %s, silent)' % (id, id
 xbmc.executebuiltin('XBMC.StopPVRManager')
 xbmc.executebuiltin('XBMC.StartPVRManager')
 
-if c_debug:
+if c_debug or is_manual_run:
   dp.close()
