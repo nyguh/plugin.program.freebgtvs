@@ -4,6 +4,8 @@ from ga import ga
 from resources.lib import *
 from resources.lib.assets import Assets
 
+__DEBUG__ = False
+
 def log(msg, level = xbmc.LOGNOTICE):
   if c_debug:
     xbmc.log('%s | %s' % (id, msg), level)
@@ -28,7 +30,6 @@ def update(action, location, crash=None):
 ###################################################
 ### Settings
 ###################################################
-__DEBUG__ = False
 is_manual_run = False if len(sys.argv) > 1 and sys.argv[1] == 'False' else True
 if not is_manual_run:
   xbmc.log('%s | Автоматично генериране на плейлиста' % id)
@@ -45,7 +46,7 @@ url = 'http://offshoregit.com/harrygg/assets/tv.db.gz'
 a = Assets(profile_dir, url, local_db, log)
 db = a.file
 try:
-  if __DEBUG__ == True: db = os.environ['BGTVS_DB']
+  db = os.environ['BGTVS_DB']
 except Exception:
   pass  
 
@@ -75,17 +76,23 @@ show_progress(25,'Търсене на потоци')
 n = 26
 
 for row in cursor:
-  c = Channel(row)
-  n += 1
-  show_progress(n,'Търсене на поток за канал %s' % c.name)
-  if c.streams == 1 and c.playpath != '':
-    pl.channels.append(c)
-  else: #If we have more than one stream get all streams and select the default one
-    cursor = conn.execute('''SELECT * FROM streams WHERE disabled <> 1 AND channel_id = %s AND ordering = 1''' % c.id)
+  try:
+    c = Channel(row)
+    n += 1
+    show_progress(n,'Търсене на поток за канал %s' % c.name)
+    #if c.streams == 1 and c.playpath != '':
+    #  pl.channels.append(c)
+    #else: #If we have more than one stream get all streams and select the default one
+    cursor = conn.execute('''SELECT s.*, u.string AS user_agent FROM streams AS s JOIN user_agents as u ON s.user_agent_id == u.id WHERE disabled <> 1 AND channel_id = %s AND ordering = 1''' % c.id)
     s = Stream(cursor.fetchone(), log)
     c.playpath = s.url
-    pl.channels.append(c)
-  
+    if c.playpath is None:
+      xbmc.log('Не е намерен валиден поток за канал %s ' % c.name)
+    else:
+      pl.channels.append(c)
+  except Exception, er:
+    xbmc.log(str(er), xbmc.LOGERROR)
+      
 show_progress(90,'Записване на плейлиста')
 pl.save(profile_dir)
 

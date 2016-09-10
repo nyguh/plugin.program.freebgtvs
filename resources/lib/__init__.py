@@ -42,9 +42,7 @@ class Playlist:
     return '#EXTM3U\n' + output
   
 class Channel:
-  #user_agent = 'stagefright/2.0'
-  user_agent = 'Mozilla/5.0 (iPad; CPU OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25'
-  
+
   def __init__(self, attr):
     self.id = attr[0]
     self.disabled = attr[1] == 1
@@ -58,10 +56,8 @@ class Channel:
 
   def to_string(self):
     output = '#EXTINF:-1 radio="False" tvg-shift=0 group-title="%s" tvg-logo="%s" tvg-id="%s",%s\n' % (self.category, self.logo, self.epg_id, self.name)
-    output += '%s' % self.playpath
-    if self.user_agent: 
-      output += '|User-Agent=%s' % self.user_agent
-    return output + '\n'
+    output += '%s\n' % self.playpath
+    return output 
  
 class Stream:
   def __init__(self, attr, log):
@@ -73,9 +69,11 @@ class Stream:
     self.player_url = attr[4]
     self.disabled = attr[5] == 1
     self.comment = attr[6]
-    self.user_agent = 'Mozilla/5.0 (Linux; Android 6.0; LG-H960; Build/WRA58K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.98 Mobile Safari/537.36'
+    self.user_agent = False if attr[9] == None else attr[9]
     if self.url == None:
       self.url = self.resolve()
+    if self.url is not None and self.user_agent: 
+      self.url += '|User-Agent=%s' % self.user_agent
     
   def resolve(self):
     #if '3583019' in self.player_url: #BiT
@@ -84,7 +82,7 @@ class Stream:
     res = requests.get(self.player_url, headers=headers)
     m = re.compile('(http.*m3u.*?)[\s\'"]+').findall(res.text)
     self.log('Намерени %s съвпадения в %s' % (len(m), self.player_url))
-    stream = '' if len(m) == 0 else m[0]
+    stream = None if len(m) == 0 else m[0]
     self.log('Извлечен видео поток %s' % stream)
     #travelhd wrong stream name hack
     if 'playerCommunity' in self.player_url:
