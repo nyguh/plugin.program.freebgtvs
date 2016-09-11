@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os, xbmc, xbmcaddon, xbmcgui, sqlite3
 from ga import ga
-from resources.lib import *
+from resources.lib.playlist import *
 from resources.lib.assets import Assets
 
 __DEBUG__ = False

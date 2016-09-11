@@ -10,7 +10,7 @@ class Assets:
   
   def __init__(self, temp_dir, url, backup_file, log):
     if os.path.isdir(temp_dir) is False:
-      create_dir(temp_dir)
+      self.create_dir(temp_dir)
     
     if url == '':
       raise ValueError("Valid asset url must be provided!")
@@ -27,7 +27,7 @@ class Assets:
     if self.file.endswith('gz'):
       self.extract()
 
-  def create_dir(dir):
+  def create_dir(self, dir):
     try: os.makedirs(dir)
     except OSError as exc: # Guard against race condition
       if exc.errno != errno.EEXIST:
