@@ -80,9 +80,6 @@ for row in cursor:
     c = Channel(row)
     n += 1
     show_progress(n,'Търсене на поток за канал %s' % c.name)
-    #if c.streams == 1 and c.playpath != '':
-    #  pl.channels.append(c)
-    #else: #If we have more than one stream get all streams and select the default one
     cursor = conn.execute('''SELECT s.*, u.string AS user_agent FROM streams AS s JOIN user_agents as u ON s.user_agent_id == u.id WHERE disabled <> 1 AND channel_id = %s AND ordering = 1''' % c.id)
     s = Stream(cursor.fetchone(), log)
     c.playpath = s.url

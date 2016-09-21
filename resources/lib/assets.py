@@ -60,11 +60,12 @@ class Assets:
       
   def extract(self):
     try:
-      with gzip.GzipFile(self.file, 'rb') as gz:
-        s = gz.read()
-        self.file = self.file.replace('.gz', '')
-        with file(self.file, 'wb') as out:
-          out.write(s)
+      gz = gzip.GzipFile(self.file, 'rb')
+      s = gz.read()
+      gz.close()
+      self.file = self.file.replace('.gz', '')
+      with file(self.file, 'wb') as out:
+        out.write(s)
     except:
       self.handle_ex()
       

@@ -25,8 +25,11 @@ class Playlist:
   def concat(self, new_m3u, append = True, raw = True):
     if raw: #TODO implement parsing playlists
       self.append = append
-      with open(new_m3u, 'r') as f:
-        self.raw_m3u = f.read().replace('#EXTM3U', '')
+      if os.path.isfile(new_m3u):
+        with open(new_m3u, 'r') as f:
+          self.raw_m3u = f.read().replace('#EXTM3U', '')
+      elif new_m3u:
+        self.raw_m3u = new_m3u.replace('#EXTM3U', '')
   
   def to_string(self):
     output = ''
@@ -42,17 +45,27 @@ class Playlist:
     return '#EXTM3U\n' + output
   
 class Channel:
-
-  def __init__(self, attr):
-    self.id = attr[0]
-    self.disabled = attr[1] == 1
-    self.name = attr[2]
-    self.category = attr[3]
-    self.logo = attr[4]
-    self.streams = attr[5]
-    self.playpath = '' if attr[6] == None else attr[6]
-    self.epg_id = '' if attr[9] == None else attr[9]
-    self.user_agent = False if attr[10] == None else attr[10]
+  id = None
+  disabled = False
+  name = None
+  category = None
+  streams = 1
+  playpath = None
+  epg_id = None
+  user_agent = None
+  
+  
+  def __init__(self, attr = False):
+    if attr:
+      self.id = attr[0]
+      self.disabled = attr[1] == 1
+      self.name = attr[2]
+      self.category = attr[3]
+      self.logo = attr[4]
+      self.streams = attr[5]
+      self.playpath = '' if attr[6] == None else attr[6]
+      self.epg_id = '' if attr[9] == None else attr[9]
+      self.user_agent = False if attr[10] == None else attr[10]
 
   def to_string(self):
     output = '#EXTINF:-1 radio="False" tvg-shift=0 group-title="%s" tvg-logo="%s" tvg-id="%s",%s\n' % (self.category, self.logo, self.epg_id, self.name)
