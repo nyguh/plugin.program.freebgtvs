@@ -42,7 +42,8 @@ icon = addon.getAddonInfo('icon').decode('utf-8')
 c_debug = True if addon.getSetting('debug') == 'true' else False
 xbmc.log("c_debug: %s " % str(c_debug))
 local_db = xbmc.translatePath(os.path.join( cwd, 'resources', 'tv.db' ))
-url = 'http://offshoregit.com/harrygg/assets/tv.db.gz'
+#url = 'http://offshoregit.com/harrygg/assets/tv.db.gz'
+url = 'https://github.com/harrygg/plugin.program.freebgtvs/blob/master/resources/tv.db?raw=true'
 a = Assets(profile_dir, url, local_db, log)
 db = a.file
 try:
