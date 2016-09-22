@@ -7,7 +7,7 @@ from resources.lib.assets import Assets
 __DEBUG__ = False
 
 def log(msg, level = xbmc.LOGNOTICE):
-  if c_debug:
+  if c_debug or level == 4:
     xbmc.log('%s | %s' % (id, msg), level)
 
 def show_progress(percent, msg):
@@ -40,10 +40,9 @@ cwd = xbmc.translatePath( addon.getAddonInfo('path') ).decode('utf-8')
 profile_dir = xbmc.translatePath( addon.getAddonInfo('profile') ).decode('utf-8')
 icon = addon.getAddonInfo('icon').decode('utf-8')
 c_debug = True if addon.getSetting('debug') == 'true' else False
-xbmc.log("c_debug: %s " % str(c_debug))
 local_db = xbmc.translatePath(os.path.join( cwd, 'resources', 'tv.db' ))
 #url = 'http://offshoregit.com/harrygg/assets/tv.db.gz'
-url = 'https://github.com/harrygg/plugin.program.freebgtvs/blob/master/resources/tv.db?raw=true'
+url = 'http://github.com/harrygg/plugin.program.freebgtvs/raw/master/resources/tv.db'
 a = Assets(profile_dir, url, local_db, log)
 db = a.file
 try:

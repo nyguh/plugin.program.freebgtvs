@@ -85,17 +85,17 @@ class Stream:
     self.user_agent = False if attr[9] == None else attr[9]
     if self.url == None:
       self.url = self.resolve()
-    if self.url is not None and self.user_agent: 
+    else:
+      self.log('Извлечен видео поток %s' % self.url)
+    if self.url != '' and self.user_agent: 
       self.url += '|User-Agent=%s' % self.user_agent
-    
+
   def resolve(self):
-    #if '3583019' in self.player_url: #BiT
-    #	return self._livestream()
     headers = {'User-agent': self.user_agent, 'Referer':self.page_url}
     res = requests.get(self.player_url, headers=headers)
     m = re.compile('(http.*m3u.*?)[\s\'"]+').findall(res.text)
     self.log('Намерени %s съвпадения в %s' % (len(m), self.player_url))
-    stream = None if len(m) == 0 else m[0]
+    stream = '' if len(m) == 0 else m[0]
     self.log('Извлечен видео поток %s' % stream)
     #travelhd wrong stream name hack
     if 'playerCommunity' in self.player_url:
