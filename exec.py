@@ -60,14 +60,14 @@ if c_debug or is_manual_run:
 show_progress(10, 'Зареждане на канали от базата данни %s ' % db)
 
 conn = sqlite3.connect(db)
-cursor = conn.execute('''SELECT c.id, c.disabled, c.name, cat.name AS category, c.logo, COUNT(s.id) AS streams, s.stream_url, s.page_url, s.player_url, c.epg_id, u.string 
+cursor = conn.execute('''SELECT c.id, c.disabled, c.name, cat.name AS category, c.logo, COUNT(s.id) AS streams, s.stream_url, s.page_url, s.player_url, c.epg_id, u.string, c.ordering 
   FROM channels AS c 
   JOIN streams AS s ON c.id = s.channel_id 
   JOIN categories as cat ON c.category_id = cat.id
   JOIN user_agents as u ON u.id = s.user_agent_id
   WHERE c.disabled <> 1
   GROUP BY c.name, c.id
-  ORDER BY c.id''')
+  ORDER BY c.ordering''')
   
 show_progress(20,'Генериране на плейлиста')
 update('generation', 'PlaylistGenerator')
@@ -80,7 +80,7 @@ for row in cursor:
     c = Channel(row)
     n += 1
     show_progress(n,'Търсене на поток за канал %s' % c.name)
-    cursor = conn.execute('''SELECT s.*, u.string AS user_agent FROM streams AS s JOIN user_agents as u ON s.user_agent_id == u.id WHERE disabled <> 1 AND channel_id = %s AND ordering = 1''' % c.id)
+    cursor = conn.execute('''SELECT s.*, u.string AS user_agent FROM streams AS s JOIN user_agents as u ON s.user_agent_id == u.id WHERE disabled <> 1 AND channel_id = %s AND preferred = 1''' % c.id)
     s = Stream(cursor.fetchone(), log)
     c.playpath = s.url
     if c.playpath is None:
