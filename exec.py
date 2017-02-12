@@ -102,6 +102,7 @@ if addon.getSetting('concat_playlist') == 'true' and os.path.isfile(apf):
   pl.concat(apf, addon.getSetting('append') == '1')
   pl.save(profile_dir)
   update('concatenation', 'PlaylistGenerator')
+  
 ###################################################
 ### Copy playlist to additional folder if specified
 ###################################################
