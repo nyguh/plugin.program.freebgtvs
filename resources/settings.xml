@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
-    <!-- General -->
-    <category label="Настройки">
-      <setting label="Генерирай плейлиста на всеки N часа" type="slider" id="run_on_interval" default="12" range="1,1,24" option="int"/>
-      <setting type="sep"/>
-      <setting label="Запази плейлистата в друга директория" type="bool"   id="copy_playlist" default="false"/>
-      <setting label="Път до директорията" type="folder" id="copy_to_folder" default="" option="writeable" visible="eq(-1,true)"/>
-      <setting type="sep"/>
-      <setting label="Обедини с друга плейлиста" type="bool"   id="concat_playlist" default="false"/>
-      <setting label="Път до m3u файл" type="file"  id="additional_playlist_file" default="" visible="eq(-1,true)"/>
-      <setting label="Добавяне" type="enum"   id="append" values="Преди основната|След основната"  default="0" visible="eq(-2,true)" />
-      <setting type="sep"/>
-      <setting label="Разширен журнал (Дебъг)" type="bool"   id="debug" default="false"/>
-    </category>
+  <!-- General -->
+  <category label="Настройки">
+    <setting label="Генерирай плейлиста на всеки N часа" type="slider" id="run_on_interval" default="12" range="1,1,24" option="int"/>
+    <setting label="Покажи радио канали" type="bool"   id="include_radios" default="true" />
+    <setting type="sep"/>
+    <setting label="Запази плейлистата в друга директория" type="bool"   id="copy_playlist" default="false"/>
+    <setting label="Път до директорията" type="folder" id="copy_to_folder" default="" option="writeable" visible="eq(-1,true)"/>
+    <setting type="sep"/>
+    <setting label="Обедини с друга плейлиста" type="bool"   id="concat_playlist" default="false"/>
+    <setting label="Път до m3u файл" type="file"  id="additional_playlist_file" default="" visible="eq(-1,true)"/>
+    <setting label="Добавяне" type="enum"   id="append" values="Преди основната|След основната"  default="0" visible="eq(-2,true)" />
+    <setting type="sep"/>
+    <setting label="Разширен журнал (Дебъг)" type="bool"   id="debug" default="false"/>
+  </category>
 </settings>

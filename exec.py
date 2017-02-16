@@ -40,9 +40,11 @@ cwd = xbmc.translatePath( addon.getAddonInfo('path') ).decode('utf-8')
 profile_dir = xbmc.translatePath( addon.getAddonInfo('profile') ).decode('utf-8')
 icon = addon.getAddonInfo('icon').decode('utf-8')
 c_debug = True if addon.getSetting('debug') == 'true' else False
+include_radios = False if addon.getSetting('include_radios') == 'false' else True
 local_db = xbmc.translatePath(os.path.join( cwd, 'resources', 'tv.db' ))
 #url = 'http://offshoregit.com/harrygg/assets/tv.db.gz'
-url = 'http://github.com/harrygg/plugin.program.freebgtvs/raw/master/resources/tv.db'
+#url = 'http://github.com/harrygg/plugin.program.freebgtvs/raw/master/resources/tv.db'
+url = 'https://github.com/harrygg/plugin.video.free.bgtvs/raw/master/resources/tv.db'
 a = Assets(profile_dir, url, local_db, log)
 db = a.file
 try:
@@ -71,7 +73,8 @@ cursor = conn.execute('''SELECT c.id, c.disabled, c.name, cat.name AS category, 
   
 show_progress(20,'Генериране на плейлиста')
 update('generation', 'PlaylistGenerator')
-pl = Playlist(log)
+
+pl = Playlist(log, include_radios)
 show_progress(25,'Търсене на потоци')
 n = 26
 

@@ -9,11 +9,13 @@ class Playlist:
   channels = []
   raw_m3u = None
   append = True
+  include_radios = True
   
-  def __init__(self, log, name = ''):
+  def __init__(self, log, include_radios = True, name = ''):
     self.log = log
     if name != '':
       self.name = name
+    self.include_radios = include_radios
   
   def save(self, path):
     file_path = os.path.join(path, self.name)
@@ -33,8 +35,10 @@ class Playlist:
   
   def to_string(self):
     output = ''
-    for c in self.channels:
-      output += c.to_string()
+    for channel in self.channels:
+      if not self.include_radios and channel.is_radio:
+        continue
+      output += channel.to_string()
       
     if self.raw_m3u != None:
       if self.append:
@@ -53,7 +57,7 @@ class Channel:
   playpath = None
   epg_id = None
   user_agent = None
-  
+  is_radio = False
   
   def __init__(self, attr = False):
     if attr:
@@ -61,7 +65,7 @@ class Channel:
       self.disabled = attr[1] == 1
       self.name = attr[2]
       self.category = attr[3]
-      self.is_radio = "True" if self.category == "Радио" else "False"
+      self.is_radio = True if self.category == "Радио" else False
       self.logo = attr[4]
       self.streams = attr[5]
       self.playpath = '' if attr[6] == None else attr[6]
