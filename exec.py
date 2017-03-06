@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, xbmc, xbmcaddon, xbmcgui, sqlite3
+import os, xbmc, xbmcaddon, xbmcgui, sqlite3, json
 from ga import ga
 from resources.lib.playlist import *
 from resources.lib.assets import Assets
@@ -26,6 +26,20 @@ def update(action, location, crash=None):
 	p['ul'] = xbmc.getLanguage()
 	p['cd'] = location
 	ga('UA-79422131-8').update(p, crash)
+
+def is_player_active():
+  try:
+    res = xbmc.executeJSONRPC('{"jsonrpc":"2.0","method":"Player.GetActivePlayers", "id":1}')
+    player_id = json.loads(res)["result"][0]["playerid"]
+    res = xbmc.executeJSONRPC('{"jsonrpc":"2.0","method":"Player.GetItem","params":{"properties":["channeltype","channelnumber"],"playerid":%s},"id":"id1"}' % player_id)
+    item_type = json.loads(res)["result"]["item"]["type"]
+    if item_type == "channel":
+      xbmc.log("PVR is playing!")
+      return True
+  except Exception, er:
+    xbmc.log(str(er))
+  xbmc.log("PVR is not playing!")
+  return False   
   
 ###################################################
 ### Settings
@@ -55,78 +69,83 @@ except Exception:
 ###################################################
 ### Addon logic
 ###################################################
-if c_debug or is_manual_run:
-  dp = xbmcgui.DialogProgressBG()
-  dp.create(heading = name)
+if is_player_active():
+  xbmc.log("PVR is in use. Delaying playlist regeneration with 5 minutes")
+  xbmc.executebuiltin('AlarmClock(%s, RunScript(%s, False), %s, silent)' % (id, id, 5))
+else:
+  if c_debug or is_manual_run:
+    dp = xbmcgui.DialogProgressBG()
+    dp.create(heading = name)
 
-show_progress(10, 'Зареждане на канали от базата данни %s ' % db)
+  show_progress(10, 'Зареждане на канали от базата данни %s ' % db)
 
-conn = sqlite3.connect(db)
-cursor = conn.execute('''SELECT c.id, c.disabled, c.name, cat.name AS category, c.logo, COUNT(s.id) AS streams, s.stream_url, s.page_url, s.player_url, c.epg_id, u.string, c.ordering 
-  FROM channels AS c 
-  JOIN streams AS s ON c.id = s.channel_id 
-  JOIN categories as cat ON c.category_id = cat.id
-  JOIN user_agents as u ON u.id = s.user_agent_id
-  WHERE c.disabled <> 1
-  GROUP BY c.name, c.id
-  ORDER BY c.ordering''')
-  
-show_progress(20,'Генериране на плейлиста')
-update('generation', 'PlaylistGenerator')
+  conn = sqlite3.connect(db)
+  cursor = conn.execute('''SELECT c.id, c.disabled, c.name, cat.name AS category, c.logo, COUNT(s.id) AS streams, s.stream_url, s.page_url, s.player_url, c.epg_id, u.string, c.ordering 
+    FROM channels AS c 
+    JOIN streams AS s ON c.id = s.channel_id 
+    JOIN categories as cat ON c.category_id = cat.id
+    JOIN user_agents as u ON u.id = s.user_agent_id
+    WHERE c.disabled <> 1
+    GROUP BY c.name, c.id
+    ORDER BY c.ordering''')
+    
+  show_progress(20,'Генериране на плейлиста')
+  update('generation', 'PlaylistGenerator')
 
-pl = Playlist(log, include_radios)
-show_progress(25,'Търсене на потоци')
-n = 26
+  pl = Playlist(log, include_radios)
+  show_progress(25,'Търсене на потоци')
+  n = 26
 
-for row in cursor:
-  try:
-    c = Channel(row)
-    n += 1
-    show_progress(n,'Търсене на поток за канал %s' % c.name)
-    cursor = conn.execute('''SELECT s.*, u.string AS user_agent FROM streams AS s JOIN user_agents as u ON s.user_agent_id == u.id WHERE disabled <> 1 AND channel_id = %s AND preferred = 1''' % c.id)
-    s = Stream(cursor.fetchone(), log)
-    c.playpath = s.url
-    if c.playpath is None:
-      xbmc.log('Не е намерен валиден поток за канал %s ' % c.name)
-    else:
-      pl.channels.append(c)
-  except Exception, er:
-    xbmc.log(str(er), xbmc.LOGERROR)
-      
-show_progress(90,'Записване на плейлиста')
-pl.save(profile_dir)
-
-###################################################
-### Apend/Prepend another playlist if specified
-###################################################
-apf = addon.getSetting('additional_playlist_file')
-if addon.getSetting('concat_playlist') == 'true' and os.path.isfile(apf):
-  show_progress(92,'Обединяване с плейлиста %s' % apf)
-  pl.concat(apf, addon.getSetting('append') == '1')
+  for row in cursor:
+    try:
+      c = Channel(row)
+      n += 1
+      show_progress(n,'Търсене на поток за канал %s' % c.name)
+      cursor = conn.execute('''SELECT s.*, u.string AS user_agent FROM streams AS s JOIN user_agents as u ON s.user_agent_id == u.id WHERE disabled <> 1 AND channel_id = %s AND preferred = 1''' % c.id)
+      s = Stream(cursor.fetchone(), log)
+      c.playpath = s.url
+      if c.playpath is None:
+        xbmc.log('Не е намерен валиден поток за канал %s ' % c.name)
+      else:
+        pl.channels.append(c)
+    except Exception, er:
+      xbmc.log(str(er), xbmc.LOGERROR)
+        
+  show_progress(90,'Записване на плейлиста')
   pl.save(profile_dir)
-  update('concatenation', 'PlaylistGenerator')
-  
-###################################################
-### Copy playlist to additional folder if specified
-###################################################
-ctf = addon.getSetting('copy_to_folder')
-if addon.getSetting('copy_playlist') == 'true' and os.path.isdir(ctf):
-  show_progress(95,'Копиране на плейлиста')
-  pl.save(ctf)
 
-####################################################
-### Set next run
-####################################################
-show_progress(98,'Генерирането на плейлистата завърши!')
-roi = int(addon.getSetting('run_on_interval')) * 60
-show_progress(99,'Настройване на AlarmClock. Следващото изпълнение на скрипта ще бъде след %s часа' % (roi / 60))
-xbmc.executebuiltin('AlarmClock(%s, RunScript(%s, False), %s, silent)' % (id, id, roi))
- 
-####################################################
-###Restart PVR Sertice to reload channels' streams
-####################################################
-xbmc.executebuiltin('XBMC.StopPVRManager')
-xbmc.executebuiltin('XBMC.StartPVRManager')
+  ###################################################
+  ### Apend/Prepend another playlist if specified
+  ###################################################
+  apf = addon.getSetting('additional_playlist_file')
+  if addon.getSetting('concat_playlist') == 'true' and os.path.isfile(apf):
+    show_progress(92,'Обединяване с плейлиста %s' % apf)
+    pl.concat(apf, addon.getSetting('append') == '1')
+    pl.save(profile_dir)
+    update('concatenation', 'PlaylistGenerator')
+    
+  ###################################################
+  ### Copy playlist to additional folder if specified
+  ###################################################
+  ctf = addon.getSetting('copy_to_folder')
+  if addon.getSetting('copy_playlist') == 'true' and os.path.isdir(ctf):
+    show_progress(95,'Копиране на плейлиста')
+    pl.save(ctf)
 
-if c_debug or is_manual_run:
-  dp.close()
+  ####################################################
+  ### Set next run
+  ####################################################
+  show_progress(98,'Генерирането на плейлистата завърши!')
+  roi = int(addon.getSetting('run_on_interval')) * 60
+  show_progress(99,'Настройване на AlarmClock. Следващото изпълнение на скрипта ще бъде след %s часа' % (roi / 60))
+  xbmc.executebuiltin('AlarmClock(%s, RunScript(%s, False), %s, silent)' % (id, id, roi))
+   
+  ####################################################
+  ###Restart PVR Sertice to reload channels' streams
+  ####################################################
+  xbmc.executebuiltin('XBMC.StopPVRManager')
+  xbmc.sleep(1000)
+  xbmc.executebuiltin('XBMC.StartPVRManager')
+
+  if c_debug or is_manual_run:
+    dp.close()
