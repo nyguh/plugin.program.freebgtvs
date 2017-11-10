@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-import os, xbmc, xbmcaddon, xbmcgui, sqlite3, json
+import os
+import json
+import time
+import xbmc
+import xbmcgui
+import sqlite3
+import xbmcaddon
 from ga import ga
 from resources.lib.playlist import *
 from resources.lib.assets import Assets
@@ -17,15 +23,19 @@ def show_progress(percent, msg):
     log(msg)
 
 def update(action, location, crash=None):
-	p = {}
-	p['an'] = addon.getAddonInfo('name')
-	p['av'] = addon.getAddonInfo('version')
-	p['ec'] = 'Addon actions'
-	p['ea'] = action
-	p['ev'] = '1'
-	p['ul'] = xbmc.getLanguage()
-	p['cd'] = location
-	ga('UA-79422131-8').update(p, crash)
+  lu = addon.getSetting('last_update')
+  day = time.strftime("%d")
+  if lu == "" or lu != day:
+    addon.setSetting('last_update', day)
+    p = {}
+    p['an'] = addon.getAddonInfo('name')
+    p['av'] = addon.getAddonInfo('version')
+    p['ec'] = 'Addon actions'
+    p['ea'] = action
+    p['ev'] = '1'
+    p['ul'] = xbmc.getLanguage()
+    p['cd'] = location
+    ga('UA-79422131-8').update(p, crash)
 
 def is_player_active():
   try:
@@ -56,8 +66,6 @@ icon = addon.getAddonInfo('icon').decode('utf-8')
 c_debug = True if addon.getSetting('debug') == 'true' else False
 include_radios = False if addon.getSetting('include_radios') == 'false' else True
 local_db = xbmc.translatePath(os.path.join( cwd, 'resources', 'tv.db' ))
-#url = 'http://offshoregit.com/harrygg/assets/tv.db.gz'
-#url = 'http://github.com/harrygg/plugin.program.freebgtvs/raw/master/resources/tv.db'
 url = 'https://github.com/harrygg/plugin.video.free.bgtvs/raw/master/resources/tv.db'
 a = Assets(profile_dir, url, local_db, log)
 db = a.file
@@ -92,7 +100,7 @@ else:
   show_progress(20,'Генериране на плейлиста')
   update('generation', 'PlaylistGenerator')
 
-  pl = Playlist(log, include_radios)
+  pl = Playlist(include_radios)
   show_progress(25,'Търсене на потоци')
   n = 26
 
@@ -102,7 +110,7 @@ else:
       n += 1
       show_progress(n,'Търсене на поток за канал %s' % c.name)
       cursor = conn.execute('''SELECT s.*, u.string AS user_agent FROM streams AS s JOIN user_agents as u ON s.user_agent_id == u.id WHERE disabled <> 1 AND channel_id = %s AND preferred = 1''' % c.id)
-      s = Stream(cursor.fetchone(), log)
+      s = Stream(cursor.fetchone())
       c.playpath = s.url
       if c.playpath is None:
         xbmc.log('Не е намерен валиден поток за канал %s ' % c.name)
