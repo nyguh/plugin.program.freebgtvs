@@ -10,7 +10,11 @@ from ga import ga
 from resources.lib.playlist import *
 from resources.lib.assets import Assets
 
-__DEBUG__ = False
+__DEBUG__ = True
+if __DEBUG__:
+  sys.path.append(os.environ['PYSRC'])
+  import pydevd
+  pydevd.settrace('localhost', stdoutToServer=False, stderrToServer=False)
 
 def log(msg, level = xbmc.LOGNOTICE):
   if c_debug or level == 4:
@@ -88,7 +92,9 @@ else:
   show_progress(10, 'Зареждане на канали от базата данни %s ' % db)
 
   conn = sqlite3.connect(db)
-  cursor = conn.execute('''SELECT c.id, c.disabled, c.name, cat.name AS category, c.logo, COUNT(s.id) AS streams, s.stream_url, s.page_url, s.player_url, c.epg_id, u.string, c.ordering 
+  cursor = conn.execute(
+    '''SELECT c.id, c.disabled, c.name, cat.name AS category, c.logo, 
+      COUNT(s.id) AS streams, s.stream_url, s.page_url, s.player_url, c.epg_id, u.string, c.ordering 
     FROM channels AS c 
     JOIN streams AS s ON c.id = s.channel_id 
     JOIN categories as cat ON c.category_id = cat.id
@@ -109,7 +115,11 @@ else:
       c = Channel(row)
       n += 1
       show_progress(n,'Търсене на поток за канал %s' % c.name)
-      cursor = conn.execute('''SELECT s.*, u.string AS user_agent FROM streams AS s JOIN user_agents as u ON s.user_agent_id == u.id WHERE disabled <> 1 AND channel_id = %s AND preferred = 1''' % c.id)
+      cursor = conn.execute(
+        '''SELECT s.*, u.string AS user_agent 
+        FROM streams AS s 
+        JOIN user_agents as u ON s.user_agent_id == u.id 
+        WHERE disabled <> 1 AND channel_id = %s AND preferred = 1''' % c.id)
       s = Stream(cursor.fetchone())
       c.playpath = s.url
       if c.playpath is None:
@@ -117,6 +127,7 @@ else:
       else:
         pl.channels.append(c)
     except Exception, er:
+      xbmc.log('Грешка при търсене на поток за канал %s ' % c.name)
       xbmc.log(str(er), xbmc.LOGERROR)
         
   show_progress(90,'Записване на плейлиста')
@@ -130,7 +141,6 @@ else:
     show_progress(92,'Обединяване с плейлиста %s' % apf)
     pl.concat(apf, addon.getSetting('append') == '1')
     pl.save(profile_dir)
-    update('concatenation', 'PlaylistGenerator')
     
   ###################################################
   ### Copy playlist to additional folder if specified
