@@ -10,7 +10,7 @@ from ga import ga
 from resources.lib.playlist import *
 from resources.lib.assets import Assets
 
-__DEBUG__ = True
+__DEBUG__ = False
 if __DEBUG__:
   sys.path.append(os.environ['PYSRC'])
   import pydevd
