@@ -17,13 +17,17 @@ class Assets:
     else:
       self.log = log
       self.url = url
+      # self.log("Setting DB url %s" % self.url)
       self.file_name = os.path.basename(url)
       self.file = os.path.join(temp_dir, self.file_name)
       self.backup_file = backup_file
       if os.path.isfile(self.file):
         self.first_run = False
     if self.is_expired():
+      self.log("DB file is old. Will be updated.")
       self.get_asset()
+    else:
+      self.log("DB file is new.")
     if self.file.endswith('gz'):
       self.extract()
 
@@ -54,6 +58,7 @@ class Assets:
       f = urllib2.urlopen(self.url)
       with open(self.file, "wb") as code:
         code.write(f.read())
+        self.log("Saved in %s" % self.file)
       self.log('Assets file downloaded')
     except:
       self.handle_ex()
