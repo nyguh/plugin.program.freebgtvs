@@ -100,7 +100,7 @@ class Stream:
   def resolve(self):
     headers = {'User-agent': self.user_agent, 'Referer':self.page_url}
     res = requests.get(self.player_url, headers=headers)
-    m = re.compile('["\']+(.*\.m3u.*?)[\s\'"]+').findall(res.text)
+    m = re.compile('(//.*\.m3u.*?)[\s\'"]+').findall(res.text)
     if len(m) == 0:
         xbmc.log(res.text, xbmc.LOGNOTICE)
     else:
