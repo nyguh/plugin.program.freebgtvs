@@ -105,7 +105,7 @@ class Stream:
         xbmc.log(res.text, xbmc.LOGNOTICE)
     else:
       if not m[0].startswith("http:") and not m[0].startswith("https:"): #some links omit the http prefix
-        m[0] = "http:" + m[0]
+        m[0] = "https:" + m[0]
     xbmc.log('Намерени %s съвпадения в %s' % (len(m), self.player_url), xbmc.LOGNOTICE)
     stream = None if len(m) == 0 else m[0]
     xbmc.log('Извлечен видео поток %s' % stream, xbmc.LOGNOTICE)
