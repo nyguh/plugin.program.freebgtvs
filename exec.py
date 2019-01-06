@@ -9,17 +9,20 @@ import xbmcaddon
 from ga import ga
 from resources.lib.playlist import *
 from resources.lib.assets import Assets
+from kodibgcommon.utils import *
 
-__DEBUG__ = False
-if __DEBUG__:
-  sys.path.append(os.environ['PYSRC'])
-  import pydevd
-  pydevd.settrace('localhost', stdoutToServer=False, stderrToServer=False)
-
-def log(msg, level = xbmc.LOGNOTICE):
-  if c_debug or level == 4:
-    xbmc.log('%s | %s' % (id, msg), level)
-
+if True:
+  try:
+    # LiClipse comes with pydevd preinstalled, so simply append its path.
+    sys.path.append(r'C:\Program Files\LiClipse 5.1.3\plugins\org.python.pydev.core_7.0.3.201811082122\pysrc')
+    sys.stdout = open(r'C:\Kodi_18_Dev\portable_data\stdout.txt', 'w')
+    sys.stderr = open(r'C:\Kodi_18_Dev\portable_data\stderr.txt', 'w')
+    import pydevd
+    pydevd.settrace("localhost", stdoutToServer=True, stderrToServer=True)
+  except Exception as er:
+    log("Error importing pydevd")     
+    log(er)
+      
 def show_progress(percent, msg):
   if c_debug or is_manual_run:
     heading = name.encode('utf-8') + ' ' + str(percent) + '%'
@@ -27,17 +30,17 @@ def show_progress(percent, msg):
     log(msg)
 
 def update(action, location, crash=None):
-  lu = addon.getSetting('last_update')
+  lu = settings.last_update
   day = time.strftime("%d")
   if lu == "" or lu != day:
-    addon.setSetting('last_update', day)
+    settings.last_update
     p = {}
-    p['an'] = addon.getAddonInfo('name')
-    p['av'] = addon.getAddonInfo('version')
+    p['an'] = get_addon_name()
+    p['av'] = get_addon_version()
     p['ec'] = 'Addon actions'
     p['ea'] = action
     p['ev'] = '1'
-    p['ul'] = xbmc.getLanguage()
+    p['ul'] = get_kodi_language()
     p['cd'] = location
     ga('UA-79422131-8').update(p, crash)
 
@@ -48,11 +51,11 @@ def is_player_active():
     res = xbmc.executeJSONRPC('{"jsonrpc":"2.0","method":"Player.GetItem","params":{"properties":["channeltype","channelnumber"],"playerid":%s},"id":"id1"}' % player_id)
     item_type = json.loads(res)["result"]["item"]["type"]
     if item_type == "channel":
-      xbmc.log("PVR is playing!")
+      log("PVR is playing!")
       return True
   except Exception, er:
-    xbmc.log(str(er))
-  xbmc.log("PVR is not playing!")
+    log(str(er))
+  log("PVR is not playing!")
   return False   
   
 ###################################################
@@ -60,19 +63,18 @@ def is_player_active():
 ###################################################
 is_manual_run = False if len(sys.argv) > 1 and sys.argv[1] == 'False' else True
 if not is_manual_run:
-  xbmc.log('%s | Автоматично генериране на плейлиста' % id)
-addon = xbmcaddon.Addon()
-id = addon.getAddonInfo('id')
-name = addon.getAddonInfo('name').decode('utf-8')
-cwd = xbmc.translatePath( addon.getAddonInfo('path') ).decode('utf-8')
-profile_dir = xbmc.translatePath( addon.getAddonInfo('profile') ).decode('utf-8')
-icon = addon.getAddonInfo('icon').decode('utf-8')
-c_debug = True if addon.getSetting('debug') == 'true' else False
-include_radios = False if addon.getSetting('include_radios') == 'false' else True
-local_db = xbmc.translatePath(os.path.join( cwd, 'resources', 'tv.db' ))
-url = 'http://github.com/harrygg/plugin.program.freebgtvs/raw/master/resources/tv.db'
-a = Assets(profile_dir, url, local_db, log)
-db = a.file
+  log('%s | Автоматично генериране на плейлиста' % get_addon_id())
+
+id             = get_addon_id()
+name           = get_addon_name()
+profile_dir    = get_profile_dir()
+icon           = get_addon().getAddonInfo('icon').decode('utf-8')
+c_debug        = settings.debug
+local_db       = xbmc.translatePath(os.path.join( get_addon_dir(), 'resources', 'tv.db' ))
+url            = 'http://github.com/harrygg/plugin.program.freebgtvs/raw/master/resources/tv.db'
+a              = Assets(profile_dir, url, local_db, log)
+db             = a.file
+
 try:
   db = os.environ['BGTVS_DB_']
 except Exception:
@@ -82,8 +84,9 @@ except Exception:
 ### Addon logic
 ###################################################
 if is_player_active():
-  xbmc.log("PVR is in use. Delaying playlist regeneration with 5 minutes")
+  log("PVR is in use. Delaying playlist regeneration with 5 minutes")
   xbmc.executebuiltin('AlarmClock(%s, RunScript(%s, False), %s, silent)' % (id, id, 5))
+  
 else:
   if c_debug or is_manual_run:
     dp = xbmcgui.DialogProgressBG()
@@ -106,7 +109,8 @@ else:
   show_progress(20,'Генериране на плейлиста')
   update('generation', 'PlaylistGenerator')
 
-  pl = Playlist(include_radios)
+  pl = Playlist()
+  pl.add_radios = settings.include_radios
   show_progress(25,'Търсене на потоци')
   n = 26
 
@@ -123,30 +127,31 @@ else:
       s = Stream(cursor.fetchone())
       c.playpath = s.url
       if c.playpath is None:
-        xbmc.log('Не е намерен валиден поток за канал %s ' % c.name)
+        log('Не е намерен валиден поток за канал %s ' % c.name)
       else:
         pl.channels.append(c)
     except Exception, er:
-      xbmc.log('Грешка при търсене на поток за канал %s ' % c.name)
-      xbmc.log(str(er), xbmc.LOGERROR)
+      log('Грешка при търсене на поток за канал %s ' % c.name)
+      log(str(er), xbmc.LOGERROR)
         
   show_progress(90,'Записване на плейлиста')
+  log('Записване на плейлиста в %s' % profile_dir, 4)
   pl.save(profile_dir)
 
   ###################################################
   ### Apend/Prepend another playlist if specified
   ###################################################
-  apf = addon.getSetting('additional_playlist_file')
-  if addon.getSetting('concat_playlist') == 'true' and os.path.isfile(apf):
+  apf = settings.additional_playlist_file
+  if settings.concat_playlist and os.path.isfile(apf):
     show_progress(92,'Обединяване с плейлиста %s' % apf)
-    pl.concat(apf, addon.getSetting('append') == '1')
+    pl.concat(apf, settings.append == 1)
     pl.save(profile_dir)
     
   ###################################################
   ### Copy playlist to additional folder if specified
   ###################################################
-  ctf = addon.getSetting('copy_to_folder')
-  if addon.getSetting('copy_playlist') == 'true' and os.path.isdir(ctf):
+  ctf = settings.copy_to_folder
+  if settings.copy_playlist and os.path.isdir(ctf):
     show_progress(95,'Копиране на плейлиста')
     pl.save(ctf)
 
@@ -154,7 +159,7 @@ else:
   ### Set next run
   ####################################################
   show_progress(98,'Генерирането на плейлистата завърши!')
-  roi = int(addon.getSetting('run_on_interval')) * 60
+  roi = int(settings.run_on_interval) * 60
   show_progress(99,'Настройване на AlarmClock. Следващото изпълнение на скрипта ще бъде след %s часа' % (roi / 60))
   xbmc.executebuiltin('AlarmClock(%s, RunScript(%s, False), %s, silent)' % (id, id, roi))
    
