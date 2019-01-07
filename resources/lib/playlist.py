@@ -11,11 +11,11 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 class Playlist:
-  name       = 'playlist.m3u'
-  channels   = []
-  raw_m3u    = None
-  append     = True
-  add_radios = False
+  name           = 'playlist.m3u'
+  channels       = []
+  raw_m3u        = None
+  append         = True
+  include_radios = False
   
   def __init__(self, name = ''):
     if name != '':
@@ -37,7 +37,11 @@ class Playlist:
   def to_string(self):
     output = ''
     for c in self.channels:
-      output += c.to_string()
+      if c.is_radio:
+        if self.include_radios:
+          output += c.to_string()
+      else:
+        output += c.to_string()
       
     if self.raw_m3u != None:
       if self.append:
@@ -66,11 +70,12 @@ class Channel:
     self.player_url = '' if attr[8] == None else attr[8]
     self.epg_id = '' if attr[9] == None else attr[9]
     self.user_agent = False if attr[10] == None else attr[10]
+    self.is_radio = self.category == 'Радио'
 
   def to_string(self):
-    output = '#EXTINF:-1 radio="False" tvg-shift=0 group-title="%s" tvg-logo="%s" tvg-id="%s",%s\n' % (self.category, self.logo, self.epg_id, self.name)
+    output = '#EXTINF:-1 radio="%s" tvg-shift=0 group-title="%s" tvg-logo="%s" tvg-id="%s",%s\n' % (self.is_radio, self.category, self.logo, self.epg_id, self.name)
     output += '%s\n' % self.playpath
-    return output 
+    return output
  
 class Stream:
   def __init__(self, attr):

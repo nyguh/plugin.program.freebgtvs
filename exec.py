@@ -10,18 +10,6 @@ from ga import ga
 from resources.lib.playlist import *
 from resources.lib.assets import Assets
 from kodibgcommon.utils import *
-
-if True:
-  try:
-    # LiClipse comes with pydevd preinstalled, so simply append its path.
-    sys.path.append(r'C:\Program Files\LiClipse 5.1.3\plugins\org.python.pydev.core_7.0.3.201811082122\pysrc')
-    sys.stdout = open(r'C:\Kodi_18_Dev\portable_data\stdout.txt', 'w')
-    sys.stderr = open(r'C:\Kodi_18_Dev\portable_data\stderr.txt', 'w')
-    import pydevd
-    pydevd.settrace("localhost", stdoutToServer=True, stderrToServer=True)
-  except Exception as er:
-    log("Error importing pydevd")     
-    log(er)
       
 def show_progress(percent, msg):
   if c_debug or is_manual_run:
@@ -68,7 +56,7 @@ if not is_manual_run:
 id             = get_addon_id()
 name           = get_addon_name()
 profile_dir    = get_profile_dir()
-icon           = get_addon().getAddonInfo('icon').decode('utf-8')
+icon           = get_addon_icon()
 c_debug        = settings.debug
 local_db       = xbmc.translatePath(os.path.join( get_addon_dir(), 'resources', 'tv.db' ))
 url            = 'http://github.com/harrygg/plugin.program.freebgtvs/raw/master/resources/tv.db'
@@ -92,7 +80,7 @@ else:
     dp = xbmcgui.DialogProgressBG()
     dp.create(heading = name)
 
-  show_progress(10, 'Зареждане на канали от базата данни %s ' % db)
+  show_progress(5, 'Зареждане на канали от базата данни %s ' % db)
 
   conn = sqlite3.connect(db)
   cursor = conn.execute(
@@ -106,13 +94,13 @@ else:
     GROUP BY c.name, c.id
     ORDER BY c.ordering''')
     
-  show_progress(20,'Генериране на плейлиста')
+  show_progress(8,'Генериране на плейлиста')
   update('generation', 'PlaylistGenerator')
 
   pl = Playlist()
-  pl.add_radios = settings.include_radios
-  show_progress(25,'Търсене на потоци')
-  n = 26
+  pl.include_radios = settings.include_radios
+  show_progress(10,'Търсене на потоци')
+  n = 11
 
   for row in cursor:
     try:
