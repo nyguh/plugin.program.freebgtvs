@@ -58,8 +58,8 @@ name           = get_addon_name()
 profile_dir    = get_profile_dir()
 icon           = get_addon_icon()
 c_debug        = settings.debug
-local_db       = xbmc.translatePath(os.path.join( get_addon_dir(), 'resources', 'tv.db' ))
-url            = 'http://github.com/harrygg/plugin.program.freebgtvs/raw/master/resources/tv.db'
+local_db       = xbmc.translatePath(os.path.join( get_addon_dir(), 'resources', 'tvs.sqlite3' ))
+url            = 'https://raw.githubusercontent.com/hristo-genev/uWsgiApps/master/freetvandradio/tvs.sqlite3'
 a              = Assets(profile_dir, url, local_db, log)
 db             = a.file
 
@@ -84,14 +84,12 @@ else:
 
   conn = sqlite3.connect(db)
   cursor = conn.execute(
-    '''SELECT c.id, c.disabled, c.name, cat.name AS category, c.logo, 
-      COUNT(s.id) AS streams, s.stream_url, s.page_url, s.player_url, c.epg_id, u.string, c.ordering 
-    FROM channels AS c 
-    JOIN streams AS s ON c.id = s.channel_id 
-    JOIN categories as cat ON c.category_id = cat.id
-    JOIN user_agents as u ON u.id = s.user_agent_id
-    WHERE c.disabled <> 1
-    GROUP BY c.name, c.id
+    '''SELECT c.id, c.name, c.logo, c.ordering, c.enabled, cat.category_id AS category, c.epg_id
+    FROM freetvandradio_channel AS c 
+    JOIN freetvandradio_channel_category AS cat
+    ON c.id = cat.channel_id
+    WHERE c.enabled = 1
+    GROUP BY c.id
     ORDER BY c.ordering''')
     
   show_progress(8,'Генериране на плейлиста')
@@ -103,24 +101,40 @@ else:
   n = 11
 
   for row in cursor:
+    name = None
     try:
       c = Channel(row)
+      name = c.name
       n += 1
-      show_progress(n,'Търсене на поток за канал %s' % c.name)
+      show_progress(n,'Търсене на поток за канал %s' % name)
       cursor = conn.execute(
         '''SELECT s.*, u.string AS user_agent 
-        FROM streams AS s 
-        JOIN user_agents as u ON s.user_agent_id == u.id 
-        WHERE disabled <> 1 AND channel_id = %s AND preferred = 1''' % c.id)
-      s = Stream(cursor.fetchone())
+        FROM freetvandradio_stream AS s 
+        JOIN freetvandradio_user_agent as u 
+        ON s.user_agent_id = u.id 
+        WHERE s.enabled = 1 
+        AND s.channel_id = %s 
+        AND preferred = 1''' % c.id)
+      attr = cursor.fetchone()
+      s = Stream( id=attr[0],
+                  stream_url=attr[1],
+                  page_url=attr[2],
+                  comment=attr[3],
+                  preferred=attr[4],
+                  channel_id=attr[7],
+                  enabled=attr[9],
+                  player_url=attr[10],
+                  user_agent=attr[11]
+                )
+                  
       c.playpath = s.url
       if c.playpath is None:
-        log('Не е намерен валиден поток за канал %s ' % c.name)
+        log('Не е намерен валиден поток за канал %s ' % name)
       else:
         pl.channels.append(c)
     except Exception, er:
-      log('Грешка при търсене на поток за канал %s ' % c.name)
-      log(str(er), xbmc.LOGERROR)
+      log('Грешка при търсене на поток за канал %s ' % name)
+      log_last_exception()
         
   show_progress(90,'Записване на плейлиста')
   log('Записване на плейлиста в %s' % profile_dir, 4)
@@ -154,9 +168,9 @@ else:
   ####################################################
   ###Restart PVR Sertice to reload channels' streams
   ####################################################
-  xbmc.executebuiltin('XBMC.StopPVRManager')
+  #xbmc.executebuiltin('XBMC.StopPVRManager')
   xbmc.sleep(1000)
-  xbmc.executebuiltin('XBMC.StartPVRManager')
+  #xbmc.executebuiltin('XBMC.StartPVRManager')
 
   if c_debug or is_manual_run:
     dp.close()
