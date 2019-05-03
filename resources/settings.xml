@@ -12,6 +12,11 @@
     <setting label="Път до m3u файл" type="file"  id="additional_playlist_file" default="" visible="eq(-1,true)"/>
     <setting label="Добавяне" type="enum"   id="append" values="Преди основната|След основната"  default="0" visible="eq(-2,true)" />
     <setting type="sep"/>
+    <setting label="Разреши свързване на всички мрежови интерфейси:" type="bool" id="bind_all" default="false" />
+    <setting label="Порт на бекенда:" type="text" id="port" default="18950" />
+    <setting label="Използвано IP на видео потоците в плейлистата:" type="text" id="stream_ip" default="127.0.0.1" />
+    <setting type="sep"/>
+
     <setting label="Разширен журнал (Дебъг)" type="bool"   id="debug" default="false"/>
   </category>
 	<category label="Потребителски данни">
